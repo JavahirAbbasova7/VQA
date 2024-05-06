@@ -5,11 +5,11 @@ train_file: ['data/vqa_train.json',
 test_file: ['data/vqa_test.json']
 answer_list: 'data/answer_list.json'
 
-vqa_root: '/export/share/datasets/vision/VQA/Images/mscoco/' #train2014/
-vg_root: '/export/share/datasets/vision/visual-genome/'  #image/
+vqa_root: '/home/gurnoor6/VQA/data/' #train2014/
+vg_root: '/home/gurnoor6/VQA/data/'  #image/
 
 image_res: 384
-batch_size_train: 32 
+batch_size_train: 4
 batch_size_test: 16 
 k_test: 128
 

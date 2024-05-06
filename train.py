@@ -1,6 +1,6 @@
 import argparse
 import os
-import ruamel_yaml as yaml
+import ruamel.yaml as yaml
 import numpy as np
 import random
 import time
@@ -233,28 +233,29 @@ def main(args, config):
 
 
 
-    if __name__ == '__main__':
-        parser = argparse.ArgumentParser()
-        parser.add_argument('--config', default='./config_VQA.yaml') 
-        parser.add_argument('--checkpoint', default='') 
-        parser.add_argument('--output_dir', default='output/vqa')
-        parser.add_argument('--evaluate', action='store_true')    
-        parser.add_argument('--text_encoder', default='bert-base-uncased')
-        parser.add_argument('--text_decoder', default='bert-base-uncased')
-        parser.add_argument('--device', default='cuda')
-        parser.add_argument('--seed', default=42, type=int)
-        parser.add_argument('--world_size', default=1, type=int, help='number of distributed processes')    
-        parser.add_argument('--dist_url', default='env://', help='url used to set up distributed training')
-        parser.add_argument('--distributed', default=True, type=bool)
-        args = parser.parse_args()
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config', default='./config_VQA.yaml') 
+    parser.add_argument('--checkpoint', default='') 
+    parser.add_argument('--output_dir', default='output/vqa')
+    parser.add_argument('--evaluate', action='store_true')    
+    parser.add_argument('--text_encoder', default='bert-base-uncased')
+    parser.add_argument('--text_decoder', default='bert-base-uncased')
+    parser.add_argument('--device', default='cpu')
+    parser.add_argument('--seed', default=42, type=int)
+    parser.add_argument('--world_size', default=1, type=int, help='number of distributed processes')    
+    parser.add_argument('--dist_url', default='env://', help='url used to set up distributed training')
+    parser.add_argument('--distributed', default=False, type=bool)
+    args = parser.parse_args()
 
-        config = yaml.load(open(args.config, 'r'), Loader=yaml.Loader)
+    yaml = yaml.YAML(typ='rt')
+    config = yaml.load(open(args.config, 'r'))
 
-        args.result_dir = os.path.join(args.output_dir, 'result')
+    args.result_dir = os.path.join(args.output_dir, 'result')
 
-        Path(args.output_dir).mkdir(parents=True, exist_ok=True)
-        Path(args.result_dir).mkdir(parents=True, exist_ok=True)
-            
-        yaml.dump(config, open(os.path.join(args.output_dir, 'config.yaml'), 'w'))    
+    Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+    Path(args.result_dir).mkdir(parents=True, exist_ok=True)
         
-        main(args, config)
+    yaml.dump(config, open(os.path.join(args.output_dir, 'config.yaml'), 'w'))    
+    
+    main(args, config)
