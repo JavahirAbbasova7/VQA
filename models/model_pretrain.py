@@ -27,11 +27,6 @@ class Patch_Projection(torch.nn.Module):
         self.linear_projection = self.text_projection = nn.Sequential(
             nn.Linear(vision_width, embed_dim),
         )
-        self.non_linear_projection = nn.Sequential(
-            nn.Linear(vision_width, embed_dim),
-            nn.GELU(),
-            nn.Linear(embed_dim, embed_dim),
-        )
     def forward(self, x):
         return self.linear_projection(x) + self.non_linear_projection(x)
 
@@ -70,7 +65,7 @@ class ALBEF(nn.Module):
         self.text_encoder = BertForMaskedLM.from_pretrained(text_encoder, config=bert_config)      
 
         text_width = self.text_encoder.config.hidden_size
-        self.vision_proj = Patch_Projection(vision_width, embed_dim)
+        self.vision_proj = nn.Linear(vision_width, embed_dim)
         self.text_proj = nn.Linear(text_width, embed_dim)         
 
         self.temp = nn.Parameter(torch.ones([]) * config['temp'])   
@@ -82,7 +77,7 @@ class ALBEF(nn.Module):
         self.visual_encoder_m = VisionTransformer(
             img_size=config['image_res'], patch_size=16, embed_dim=768, depth=12, num_heads=12, 
             mlp_ratio=4, qkv_bias=True, norm_layer=partial(nn.LayerNorm, eps=1e-6)) 
-        self.vision_proj_m = Patch_Projection(vision_width, embed_dim)
+        self.vision_proj_m = nn.Linear(vision_width, embed_dim)
         self.text_encoder_m = BertForMaskedLM.from_pretrained(text_encoder, config=bert_config)       
         self.text_proj_m = nn.Linear(text_width, embed_dim)    
         

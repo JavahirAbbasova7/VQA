@@ -39,9 +39,9 @@ def create_dataset(dataset, config):
         return dataset  
   
     if dataset=='vqa': 
-        train_dataset = vqa_dataset(config['train_file'], train_transform, config['vqa_root'], config['vg_root'], split='train') 
-        vqa_test_dataset = vqa_dataset(config['test_file'], test_transform, config['vqa_root'], config['vg_root'], split='test', answer_list=config['answer_list'])       
-        return train_dataset, vqa_test_dataset
+        train_dataset = vqa_dataset(config['train_file'], train_transform, config['vqa_root'], "", split='train') 
+        # vqa_test_dataset = vqa_dataset(config['test_file'], test_transform, config['vqa_root'], "", split='test', answer_list=config['answer_list'])       
+        return train_dataset
     
 
 def vqa_collate_fn(batch):
