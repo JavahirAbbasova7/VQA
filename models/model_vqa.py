@@ -8,7 +8,6 @@ import torch.nn.functional as F
 
 import numpy as np
 
-from models.scoring import ScoringModel
 
 class ALBEF(nn.Module):
     def __init__(self,                 
@@ -25,9 +24,6 @@ class ALBEF(nn.Module):
         self.visual_encoder = VisionTransformer(
             img_size=config['image_res'], patch_size=16, embed_dim=768, depth=12, num_heads=12, 
             mlp_ratio=4, qkv_bias=True, norm_layer=partial(nn.LayerNorm, eps=1e-6))    
-
-
-        self.scoring_fn = ScoringModel(embed_dim=768)
 
         config_encoder = BertConfig.from_json_file(config['bert_config'])   
         self.text_encoder = BertModel.from_pretrained(text_encoder, config=config_encoder, add_pooling_layer=False)  
@@ -55,8 +51,6 @@ class ALBEF(nn.Module):
         
         image_embeds = self.visual_encoder(image) 
         image_atts = torch.ones(image_embeds.size()[:-1],dtype=torch.long).to(image.device)
-
-        scores = self.scoring_fn(image_embeds)
         
         if train:               
             '''
@@ -65,7 +59,6 @@ class ALBEF(nn.Module):
             '''          
             answer_targets = answer.input_ids.masked_fill(answer.input_ids == self.tokenizer.pad_token_id, -100)      
             
-            breakpoint()
             question_output = self.text_encoder(quesiton.input_ids, 
                                                 attention_mask = quesiton.attention_mask, 
                                                 encoder_hidden_states = image_embeds,

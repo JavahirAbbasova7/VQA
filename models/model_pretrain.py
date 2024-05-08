@@ -16,6 +16,7 @@ from torch import nn
 import numpy as np
 import random
 
+from models.scoring import ScoringModel
 
 class ALBEF(nn.Module):
     def __init__(self,                 
@@ -34,6 +35,8 @@ class ALBEF(nn.Module):
         self.visual_encoder = VisionTransformer(
             img_size=config['image_res'], patch_size=16, embed_dim=768, depth=12, num_heads=12, 
             mlp_ratio=4, qkv_bias=True, norm_layer=partial(nn.LayerNorm, eps=1e-6))   
+
+        self.scoring_fn = ScoringModel(embed_dim=768)
         
         if init_deit:
             checkpoint = torch.hub.load_state_dict_from_url(
@@ -95,7 +98,19 @@ class ALBEF(nn.Module):
         image_feat = F.normalize(self.vision_proj(image_embeds[:,0,:]),dim=-1)  
 
         text_output = self.text_encoder.bert(text.input_ids, attention_mask = text.attention_mask,                      
-                                        return_dict = True, mode = 'text')            
+                                        return_dict = True, mode = 'text')      
+
+        scores = self.scoring_fn(image_embeds)
+        replacement_embed = text_output.last_hidden_state.mean(dim=1)
+        
+        replacement_embed = replacement_embed.unsqueeze(1).repeat(1, scores.size(1), 1)
+        scores = scores.repeat(1, 1, image_embeds.size(2))
+
+        thresh = 0.1
+        mask = torch.where(scores < thresh, 1, 0)
+
+        image_embeds = image_embeds * (1 - mask) + replacement_embed * mask
+          
         text_embeds = text_output.last_hidden_state
         text_feat = F.normalize(self.text_proj(text_embeds[:,0,:]),dim=-1)                 
              
@@ -234,8 +249,11 @@ class ALBEF(nn.Module):
     @torch.no_grad()
     def _dequeue_and_enqueue(self, image_feat, text_feat):
         # gather keys before updating queue
-        image_feats = concat_all_gather(image_feat)
-        text_feats = concat_all_gather(text_feat)
+        # image_feats = concat_all_gather(image_feat)
+        # text_feats = concat_all_gather(text_feat)
+
+        image_feats = image_feat
+        text_feats = text_feat
 
         batch_size = image_feats.shape[0]
 

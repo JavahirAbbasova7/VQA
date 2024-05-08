@@ -13,7 +13,8 @@ class ScoringModel(nn.Module):
             nn.GELU(),
             nn.Linear(embed_dim // 2, embed_dim // 4),
             nn.GELU(),
-            nn.Linear(embed_dim // 4, embed_dim)
+            nn.Linear(embed_dim // 4, 1),
+            nn.Sigmoid()
         )
 
     def forward(self, x):
