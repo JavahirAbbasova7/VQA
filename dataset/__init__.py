@@ -4,11 +4,14 @@ from torchvision import transforms
 from PIL import Image
 
 from dataset.vqa_dataset import vqa_dataset
+from dataset.pretrain_dataset import pretrain_dataset
 from dataset.randaugment import RandomAugment
+    
 
 def create_dataset(dataset, config):
-    
+
     normalize = transforms.Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))   
+    
     train_transform = transforms.Compose([                        
             transforms.RandomResizedCrop(config['image_res'],scale=(0.5, 1.0), interpolation=Image.BICUBIC),
             transforms.RandomHorizontalFlip(),
@@ -27,6 +30,10 @@ def create_dataset(dataset, config):
         train_dataset = vqa_dataset(config['train_file'], train_transform, config['vqa_root'], config['vg_root'], split='train') 
         vqa_test_dataset = vqa_dataset(config['test_file'], test_transform, config['vqa_root'], config['vg_root'], split='test', answer_list=config['answer_list'])       
         return train_dataset, vqa_test_dataset
+    
+    if dataset=='pretrain':
+        dataset = pretrain_dataset(config['train_file'], train_transform, config['vqa_root'])                  
+        return dataset 
     
 
 def vqa_collate_fn(batch):

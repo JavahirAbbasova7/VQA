@@ -63,14 +63,16 @@ class ALBEF(nn.Module):
                                                 encoder_hidden_states = image_embeds,
                                                 encoder_attention_mask = image_atts,                             
                                                 return_dict = True)    
+            
+            print(question_output.shape)
 
             question_states = []                
             question_atts = []  
             for b, n in enumerate(k):
                 question_states += [question_output.last_hidden_state[b]]*n
                 question_atts += [quesiton.attention_mask[b]]*n 
-            question_states = torch.stack(question_states,0)    
-            question_atts = torch.stack(question_atts,0)     
+            question_states = torch.stack(question_states,0)    # Num Ans x Seq Len x Int Dim (768)
+            question_atts = torch.stack(question_atts,0)    
 
             if self.distill:                    
                 with torch.no_grad():

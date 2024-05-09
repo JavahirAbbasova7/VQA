@@ -14,10 +14,12 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import torch.backends.cudnn as cudnn
 import torch.distributed as dist
+import torchvision.models as models
 
-from models.model_vqa import ALBEF
-from models.vit import interpolate_pos_embed
-from models.tokenization_bert import BertTokenizer
+from models.ALBEF_vqa import ALBEF
+from models.local_albef_vqa import local_ALBEF
+from visual_encoders.vit import interpolate_pos_embed
+from text_encoders.tokenization_bert import BertTokenizer
 
 import project_utils
 from data_utils import save_result
@@ -182,7 +184,12 @@ def main(args, config):
         print('load checkpoint from %s'%args.checkpoint)
         print(msg)  
 
-        
+
+    if not args.no_local:
+        # Load the pretrained ResNet-18 model
+        resnet = models.resnet18(pretrained=True)
+        model  = local_ALBEF(model, resnet)  
+
     model_without_ddp = model
     if args.distributed:
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
@@ -238,7 +245,8 @@ def main(args, config):
         parser.add_argument('--config', default='./config_VQA.yaml') 
         parser.add_argument('--checkpoint', default='') 
         parser.add_argument('--output_dir', default='output/vqa')
-        parser.add_argument('--evaluate', action='store_true')    
+        parser.add_argument('--evaluate', action='store_true') 
+        parser.add_argument('--no_local', action='store_true')      # Restore to base ALBEF 
         parser.add_argument('--text_encoder', default='bert-base-uncased')
         parser.add_argument('--text_decoder', default='bert-base-uncased')
         parser.add_argument('--device', default='cuda')

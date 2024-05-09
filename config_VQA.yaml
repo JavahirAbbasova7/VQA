@@ -1,14 +1,12 @@
-train_file: ['data/vqa_train.json',
-             'data/vqa_val.json',   
-             'data/vg_qa.json']
+train_file: ['data/finetune_subset.json']
              
-test_file: ['data/vqa_test.json']
+test_file: ['data/test_subset.json']
 answer_list: 'data/answer_list.json'
 
-vqa_root: '/export/share/datasets/vision/VQA/Images/mscoco/' #train2014/
-vg_root: '/export/share/datasets/vision/visual-genome/'  #image/
+vqa_root: './data/' #train2014/
+vg_root: './data/'  #image/
 
-image_res: 384
+image_res: 384 # The input image will be of the scale 384x384
 batch_size_train: 32 
 batch_size_test: 16 
 k_test: 128
