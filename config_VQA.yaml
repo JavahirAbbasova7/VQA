@@ -7,7 +7,7 @@ vqa_root: './data/' #train2014/
 vg_root: './data/'  #image/
 
 image_res: 384 # The input image will be of the scale 384x384
-batch_size_train: 32 
+batch_size_train: 16 
 batch_size_test: 16 
 k_test: 128
 

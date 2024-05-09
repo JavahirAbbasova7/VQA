@@ -18,7 +18,7 @@ class local_ALBEF(nn.Module):
                  config = None,     
                  ):
         super().__init__()
-        
+    
         self.tokenizer = tokenizer 
         self.distill = config['distill']
 
@@ -41,10 +41,15 @@ class local_ALBEF(nn.Module):
         if self.distill:
             self.visual_encoder_m = VisionTransformer(
                 img_size=config['image_res'], patch_size=16, embed_dim=768, depth=12, num_heads=12, 
-                mlp_ratio=4, qkv_bias=True, norm_layer=partial(nn.LayerNorm, eps=1e-6))             
+                mlp_ratio=4, qkv_bias=True, norm_layer=partial(nn.LayerNorm, eps=1e-6))  
+
+            resnet = models.resnet18(pretrained=True)
+            self.local_visual_encoder_m = local_CNN(resnet)    
+
             self.text_encoder_m = BertModel.from_pretrained(text_encoder, config=config_encoder, add_pooling_layer=False)   
             self.text_decoder_m = BertLMHeadModel.from_pretrained(text_decoder, config=config_decoder)   
             self.model_pairs = [[self.visual_encoder,self.visual_encoder_m],
+                                [self.local_visual_encoder, self.local_visual_encoder_m],
                                 [self.text_encoder,self.text_encoder_m],
                                 [self.text_decoder,self.text_decoder_m],
                                ]
@@ -72,8 +77,6 @@ class local_ALBEF(nn.Module):
                                                 encoder_hidden_states = image_embeds,
                                                 encoder_attention_mask = image_atts,                             
                                                 return_dict = True)    
-            
-            print(question_output.shape)
 
             question_states = []                
             question_atts = []  
@@ -87,6 +90,9 @@ class local_ALBEF(nn.Module):
                 with torch.no_grad():
                     self._momentum_update()
                     image_embeds_m = self.visual_encoder_m(image) 
+                    local_image_embeds_m = self.local_visual_encoder_m(image)
+                    image_embeds_m = 0.75*image_embeds_m + 0.25*local_image_embeds_m
+
                     question_output_m = self.text_encoder_m(quesiton.input_ids, 
                                                             attention_mask = quesiton.attention_mask, 
                                                             encoder_hidden_states = image_embeds_m,

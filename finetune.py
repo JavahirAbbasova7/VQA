@@ -112,7 +112,6 @@ def main(args, config):
     max_epoch = config['schedular']['epochs']
     warmup_steps = config['schedular']['warmup_epochs']
     
-    
     #### Dataset #### 
     print("Creating vqa datasets")
     datasets = create_dataset('vqa', config)   
@@ -133,7 +132,8 @@ def main(args, config):
 
     #### Model #### 
     print("Creating model")
-    model = ALBEF(config=config, text_encoder=args.text_encoder, text_decoder=args.text_decoder, tokenizer=tokenizer)
+    model  = local_ALBEF(config=config, text_encoder=args.text_encoder, text_decoder=args.text_decoder, tokenizer=tokenizer)  
+
     model = model.to(device)   
     
     # Create Optimizer
@@ -185,11 +185,6 @@ def main(args, config):
         print(msg)  
 
 
-    if not args.no_local:
-        # Load the pretrained ResNet-18 model
-        resnet = models.resnet18(pretrained=True)
-        model  = local_ALBEF(model, resnet)  
-
     model_without_ddp = model
     if args.distributed:
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
@@ -240,29 +235,31 @@ def main(args, config):
 
 
 
-    if __name__ == '__main__':
-        parser = argparse.ArgumentParser()
-        parser.add_argument('--config', default='./config_VQA.yaml') 
-        parser.add_argument('--checkpoint', default='') 
-        parser.add_argument('--output_dir', default='output/vqa')
-        parser.add_argument('--evaluate', action='store_true') 
-        parser.add_argument('--no_local', action='store_true')      # Restore to base ALBEF 
-        parser.add_argument('--text_encoder', default='bert-base-uncased')
-        parser.add_argument('--text_decoder', default='bert-base-uncased')
-        parser.add_argument('--device', default='cuda')
-        parser.add_argument('--seed', default=42, type=int)
-        parser.add_argument('--world_size', default=1, type=int, help='number of distributed processes')    
-        parser.add_argument('--dist_url', default='env://', help='url used to set up distributed training')
-        parser.add_argument('--distributed', default=True, type=bool)
-        args = parser.parse_args()
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config', default='./config_VQA.yaml') 
+    parser.add_argument('--checkpoint', default='') 
+    parser.add_argument('--output_dir', default='output/vqa')
+    parser.add_argument('--evaluate', action='store_true') 
+    parser.add_argument('--text_encoder', default='bert-base-uncased')
+    parser.add_argument('--text_decoder', default='bert-base-uncased')
+    parser.add_argument('--device', default='cuda')
+    parser.add_argument('--seed', default=42, type=int)
+    parser.add_argument('--world_size', default=1, type=int, help='number of distributed processes')    
+    parser.add_argument('--dist_url', default='env://', help='url used to set up distributed training')
+    parser.add_argument('--distributed', default=True, type=bool)
+    args = parser.parse_args()
 
-        config = yaml.load(open(args.config, 'r'), Loader=yaml.Loader)
+    
 
-        args.result_dir = os.path.join(args.output_dir, 'result')
+    config = yaml.load(open(args.config, 'r'), Loader=yaml.Loader)
 
-        Path(args.output_dir).mkdir(parents=True, exist_ok=True)
-        Path(args.result_dir).mkdir(parents=True, exist_ok=True)
-            
-        yaml.dump(config, open(os.path.join(args.output_dir, 'config.yaml'), 'w'))    
+    args.result_dir = os.path.join(args.output_dir, 'result')
+
+    Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+    Path(args.result_dir).mkdir(parents=True, exist_ok=True)
         
-        main(args, config)
+    yaml.dump(config, open(os.path.join(args.output_dir, 'config.yaml'), 'w'))    
+    
+    main(args, config)
+
