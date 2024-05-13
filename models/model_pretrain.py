@@ -55,7 +55,7 @@ class ALBEF(nn.Module):
 
         text_width = self.text_encoder.config.hidden_size
         self.vision_proj = nn.Linear(vision_width, embed_dim)
-        self.replacement_proj = nn.Linear(vision_width, vision_width)
+        self.replacement_proj = nn.Linear(text_width, vision_width)
         self.text_proj = nn.Linear(text_width, embed_dim)         
 
         self.temp = nn.Parameter(torch.ones([]) * config['temp'])   
@@ -102,8 +102,9 @@ class ALBEF(nn.Module):
                                         return_dict = True, mode = 'text')      
 
         scores = self.scoring_fn(image_embeds)
-        # replacement_embed = text_output.last_hidden_state.mean(dim=1)
-        replacement_embed = image_embeds[:,0,:]
+
+        replacement_embed = self.replacement_proj(text_output.last_hidden_state[:, 0, :])
+        # replacement_embed = image_embeds[:,0,:]
 
         replacement_embed = replacement_embed.unsqueeze(1).repeat(1, scores.size(1), 1)
         scores = scores.repeat(1, 1, image_embeds.size(2))
