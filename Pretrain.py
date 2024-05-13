@@ -111,7 +111,7 @@ def main(args, config):
     else:
         samplers = [None]
 
-    data_loader = create_loader(datasets,samplers,batch_size=[config['batch_size']], num_workers=[4], is_trains=[True], collate_fns=[None])[0]
+    data_loader = create_loader(datasets,samplers,batch_size=[config['batch_size']], num_workers=[0], is_trains=[True], collate_fns=[None])[0]
 
     tokenizer = BertTokenizer.from_pretrained(args.text_encoder)
 
@@ -139,12 +139,12 @@ def main(args, config):
             m_pos_embed_reshaped = interpolate_pos_embed(state_dict['visual_encoder_m.pos_embed'],model.visual_encoder_m)  
             state_dict['visual_encoder.pos_embed'] = pos_embed_reshaped       
             state_dict['visual_encoder_m.pos_embed'] = m_pos_embed_reshaped               
-        model.load_state_dict(state_dict)    
+        model.load_state_dict(state_dict, strict=False)    
         print('load checkpoint from %s'%args.checkpoint)
     
     model_without_ddp = model
     if args.distributed:
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu], find_unused_parameters=True)
         model_without_ddp = model.module    
     
     print("Start training")
@@ -183,15 +183,15 @@ def main(args, config):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', default='./configs/Pretrain.yaml')
-    parser.add_argument('--checkpoint', default='') 
+    parser.add_argument('--checkpoint', default='checkpoint/ALBEF.pth') 
     parser.add_argument('--resume', default=False, type=bool)
     parser.add_argument('--output_dir', default='Pretrain/')
     parser.add_argument('--text_encoder', default='bert-base-uncased')
-    parser.add_argument('--device', default='cpu')
+    parser.add_argument('--device', default='cuda')
     parser.add_argument('--seed', default=42, type=int)
     parser.add_argument('--world_size', default=1, type=int, help='number of distributed processes')    
     parser.add_argument('--dist_url', default='env://', help='url used to set up distributed training')
-    parser.add_argument('--distributed', default=False, type=bool)
+    parser.add_argument('--distributed', default=True, type=bool)
     args = parser.parse_args()
 
     yaml = yaml.YAML(typ='rt')
