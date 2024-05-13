@@ -1,6 +1,6 @@
 import argparse
 import os
-import ruamel_yaml as yaml
+import ruamel.yaml as yaml
 import numpy as np
 import random
 import time
@@ -15,8 +15,8 @@ from torch.utils.data import DataLoader
 import torch.backends.cudnn as cudnn
 import torch.distributed as dist
 
-from models.model_vqa import ALBEF
-from models.vit import interpolate_pos_embed
+import models.model_vqa as model_vqa
+from visual_encoders.vit import interpolate_pos_embed
 from models.tokenization_bert import BertTokenizer
 
 import project_utils
@@ -127,11 +127,12 @@ def main(args, config):
                                               num_workers=[4,4],is_trains=[True, False], 
                                               collate_fns=[vqa_collate_fn,None]) 
 
-    tokenizer = BertTokenizer.from_pretrained(args.text_encoder)
+    tokenizer = BertTokenizer.from_pretrained(args.text_encoder, truncation_side="left")
+    tokenizer.add_special_tokens({"bos_token": "[DEC]"})
 
     #### Model #### 
     print("Creating model")
-    model = ALBEF(config=config, text_encoder=args.text_encoder, text_decoder=args.text_decoder, tokenizer=tokenizer)
+    model = models.model_vqa.model_vqa.ALBEF(config=config, text_encoder=args.text_encoder, text_decoder=args.text_decoder, tokenizer=tokenizer)
     model = model.to(device)   
     
     # Create Optimizer
@@ -236,7 +237,7 @@ def main(args, config):
     if __name__ == '__main__':
         parser = argparse.ArgumentParser()
         parser.add_argument('--config', default='./config_VQA.yaml') 
-        parser.add_argument('--checkpoint', default='') 
+        parser.add_argument('--checkpoint', default='./output/Pretrain/checkpoint_03.pth') 
         parser.add_argument('--output_dir', default='output/vqa')
         parser.add_argument('--evaluate', action='store_true')    
         parser.add_argument('--text_encoder', default='bert-base-uncased')

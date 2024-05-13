@@ -16,21 +16,6 @@ from torch import nn
 import numpy as np
 import random
 
-
-class Patch_Projection(torch.nn.Module):
-    def __init__(self, vision_width=768, embed_dim=768):
-        super(Patch_Projection, self).__init__()
-
-        self.vision_width = vision_width
-        self.embed_dim = embed_dim
-        
-        self.linear_projection = self.text_projection = nn.Sequential(
-            nn.Linear(vision_width, embed_dim),
-        )
-    def forward(self, x):
-        return self.linear_projection(x) + self.non_linear_projection(x)
-
-
 class ALBEF(nn.Module):
     def __init__(self,                 
                  text_encoder = None,
