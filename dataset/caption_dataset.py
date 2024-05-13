@@ -98,10 +98,10 @@ class pretrain_dataset(Dataset):
         
         ann = self.ann[index]
         
-        if type(ann['caption']) == list:
-            caption = pre_caption(random.choice(ann['caption']), self.max_words)
+        if type(ann['question']) == list:
+            caption = pre_caption(random.choice(ann['question']), self.max_words)
         else:
-            caption = pre_caption(ann['caption'], self.max_words)
+            caption = pre_caption(ann['question'], self.max_words)
       
         image = Image.open('data/' + ann['image']).convert('RGB')   
         image = self.transform(image)
