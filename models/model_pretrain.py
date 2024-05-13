@@ -135,6 +135,16 @@ class ALBEF(nn.Module):
 
             sim_i2t_targets = alpha * F.softmax(sim_i2t_m, dim=1) + (1 - alpha) * sim_targets
             sim_t2i_targets = alpha * F.softmax(sim_t2i_m, dim=1) + (1 - alpha) * sim_targets        
+        
+        # non-contrastive loss
+        # if non_contrastive_loss:
+        #     p_image = F.softmax(image_feat, dim=1)
+        #     p_text = F.softmax(text_feat, dim=1)
+        #     loss_cross_entropy = - (p_image * torch.log(p_text) + p_text * torch.log(p_image)).sum(dim=1).mean(dim=0)
+        #     l_EH = - (p_image * torch.log(p_image) + p_text * torch.log(p_text)).sum(dim=1).mean(dim=0)
+            
+        #     p_image_mean, p_text_mean = p_image.mean(dim=0), p_text.mean(dim=0)
+        #     l_HE = - (p_image_mean * torch.log(p_image_mean) + p_text_mean * torch.log(p_text_mean)).sum(dim=0)
 
         sim_i2t = image_feat @ text_feat_all / self.temp 
         sim_t2i = text_feat @ image_feat_all / self.temp 
