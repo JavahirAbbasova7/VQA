@@ -55,7 +55,7 @@ class ALBEF(nn.Module):
 
         text_width = self.text_encoder.config.hidden_size
         self.vision_proj = nn.Linear(vision_width, embed_dim)
-        self.replacement_proj = nn.Linear(vision_width, embed_dim)
+        self.replacement_proj = nn.Linear(vision_width, vision_width)
         self.text_proj = nn.Linear(text_width, embed_dim)         
 
         self.temp = nn.Parameter(torch.ones([]) * config['temp'])   
@@ -103,13 +103,14 @@ class ALBEF(nn.Module):
 
         scores = self.scoring_fn(image_embeds)
         # replacement_embed = text_output.last_hidden_state.mean(dim=1)
-        replacement_embed = self.replacement_proj(image_embeds[:,0,:])
+        replacement_embed = image_embeds[:,0,:]
 
         replacement_embed = replacement_embed.unsqueeze(1).repeat(1, scores.size(1), 1)
         scores = scores.repeat(1, 1, image_embeds.size(2))
 
         thresh = 0.1
         mask = torch.where(scores < thresh, 1, 0)
+        print(mask.sum().item(), scores.min().item(), scores.max().item())
 
         image_embeds = image_embeds * (1 - mask) + replacement_embed * mask
           
@@ -251,11 +252,11 @@ class ALBEF(nn.Module):
     @torch.no_grad()
     def _dequeue_and_enqueue(self, image_feat, text_feat):
         # gather keys before updating queue
-        # image_feats = concat_all_gather(image_feat)
-        # text_feats = concat_all_gather(text_feat)
+        image_feats = concat_all_gather(image_feat)
+        text_feats = concat_all_gather(text_feat)
 
-        image_feats = image_feat
-        text_feats = text_feat
+        # image_feats = image_feat
+        # text_feats = text_feat
 
         batch_size = image_feats.shape[0]
 
