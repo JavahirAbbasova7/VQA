@@ -49,7 +49,7 @@ def train(model, data_loader, optimizer, tokenizer, epoch, warmup_steps, device,
         else:
             alpha = config['alpha']*min(1,i/len(data_loader))
 
-        loss = model(image, question, answer, train=True, alpha=alpha, k=n, weights=weights)        
+        loss = model(image, question, answer, train=True, weights=weights)        
         
         optimizer.zero_grad()
         loss.backward()
@@ -127,7 +127,7 @@ def main(args, config):
 
     #### Model #### 
     print("Creating model")
-    model = model_vqa_BLIP.ALBEF(config=config, text_encoder=args.text_encoder, text_decoder=args.text_decoder, tokenizer=tokenizer)
+    model = model_vqa_BLIP.ALBEF(config=config, text_encoder=args.text_encoder)
     model = model.to(device)   
     
     arg_opt = utils.AttrDict(config['optimizer'])
@@ -144,32 +144,29 @@ def main(args, config):
         state_dict['visual_encoder.pos_embed'] = pos_embed_reshaped   
         
         if not args.evaluate:
-            if config['distill']:
-                m_pos_embed_reshaped = interpolate_pos_embed(state_dict['visual_encoder_m.pos_embed'],model.visual_encoder_m)   
-                state_dict['visual_encoder_m.pos_embed'] = m_pos_embed_reshaped 
                 
             for key in list(state_dict.keys()):
                 if 'bert' in key:
                     encoder_key = key.replace('bert.','')         
                     state_dict[encoder_key] = state_dict[key] 
                 # intialize text decoder as multimodal encoder (last 6 layers of model.text_encoder)    
-                if 'text_encoder' in key:                
-                    if 'layer' in key:
-                        encoder_keys = key.split('.')
-                        layer_num = int(encoder_keys[4])
-                        if layer_num<6:
-                            del state_dict[key]  
-                            continue
-                        else:
-                            decoder_layer_num = (layer_num-6)
-                            encoder_keys[4] = str(decoder_layer_num)
-                            encoder_key = '.'.join(encoder_keys)     
-                    else:
-                        encoder_key = key
-                    decoder_key = encoder_key.replace('text_encoder','text_decoder')  
-                    state_dict[decoder_key] = state_dict[key]     
+                # if 'text_encoder' in key:                
+                #     if 'layer' in key:
+                #         encoder_keys = key.split('.')
+                #         layer_num = int(encoder_keys[4])
+                #         if layer_num<6:
+                #             del state_dict[key]  
+                #             continue
+                #         else:
+                #             decoder_layer_num = (layer_num-6)
+                #             encoder_keys[4] = str(decoder_layer_num)
+                #             encoder_key = '.'.join(encoder_keys)     
+                #     else:
+                #         encoder_key = key
+                #     decoder_key = encoder_key.replace('text_encoder','text_decoder')  
+                #     state_dict[decoder_key] = state_dict[key]     
 
-                    del state_dict[key]                
+                #     del state_dict[key]                
                 
         msg = model.load_state_dict(state_dict,strict=False)  
         print('load checkpoint from %s'%args.checkpoint)

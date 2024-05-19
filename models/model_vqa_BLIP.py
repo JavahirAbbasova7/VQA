@@ -4,59 +4,32 @@ from visual_encoders.vit import VisionTransformer
 import torch
 from torch import nn
 import torch.nn.functional as F
-from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import AutoModelForCausalLM, AutoTokenizer, BertTokenizer
+import quanto
 from models.BLIP2 import LayerNorm, Blip2Base, disabled_train
 import numpy as np
+import inspect
+from text_encoders.xbert_BLIP import BertConfig, BertModel
 
 
 class ALBEF(Blip2Base):
     def __init__(self,                 
                  text_encoder = None,
-                 text_decoder = None,
-                 tokenizer = None,
                  config = None,     
                  ):
         super().__init__()
 
-        model_id = "meta-llama/Meta-Llama-3-8B-Instruct"
+        # model_id = "meta-llama/Meta-Llama-3-8B-Instruct"
+        model_id = "astronomer/Llama-3-8B-Instruct-GPTQ-4-Bit"
         
-        self.tokenizer = self.init_tokenizer(truncation_side="left")
+        self.tokenizer = BertTokenizer.from_pretrained("bert-base-uncased", truncation_side="left")
         self.distill = config['distill']
-        num_query_token = 32
-        qformer_text_input = True
 
-        self.visual_encoder = VisionTransformer(
-            img_size=config['image_res'], patch_size=16, embed_dim=768, depth=12, num_heads=12, 
-            mlp_ratio=4, qkv_bias=True, norm_layer=partial(nn.LayerNorm, eps=1e-6))    
-        
-        self.ln_vision = LayerNorm(self.visual_encoder.num_features)  
-        self.Qformer, self.query_tokens = self.init_Qformer(
-            num_query_token, self.visual_encoder.num_features
-        )
-
-        if self.distill:
-            self.visual_encoder_m = VisionTransformer(
-                img_size=config['image_res'], patch_size=16, embed_dim=768, depth=12, num_heads=12, 
-                mlp_ratio=4, qkv_bias=True, norm_layer=partial(nn.LayerNorm, eps=1e-6))             
-            self.Qformer_m, self.query_tokens_m = self.init_Qformer(
-            num_query_token, self.visual_encoder.num_features
-            )
-
-            self.model_pairs = [[self.visual_encoder,self.visual_encoder_m],
-                                [self.Qformer, self.Qformer_m]
-                               ]
-            self.copy_params() 
-            self.momentum = 0.995
-
-
-        self.Qformer.resize_token_embeddings(len(self.tokenizer))
-        self.Qformer.cls = None
-
-
-        self.llm_tokenizer = AutoTokenizer.from_pretrained("llm/model", truncation_side="left")
+        self.llm_tokenizer = AutoTokenizer.from_pretrained(model_id, truncation_side="left")
         self.llm_model = AutoModelForCausalLM.from_pretrained(
-            "llm/model", torch_dtype=torch.float16, device_map = 'auto'
+            model_id, torch_dtype=torch.float16, device_map = 'cuda'
         )
+
         self.llm_tokenizer.add_special_tokens({'pad_token': '[PAD]'})
         self.llm_tokenizer.add_special_tokens({'bos_token': '</s>'})
         self.llm_tokenizer.add_special_tokens({'eos_token': '</s>'})
@@ -72,9 +45,32 @@ class ALBEF(Blip2Base):
         for name, param in self.llm_model.named_parameters():
             param.requires_grad = False
 
+        self.visual_encoder = VisionTransformer(
+            img_size=config['image_res'], patch_size=16, embed_dim=768, depth=12, num_heads=12, 
+            mlp_ratio=4, qkv_bias=True, norm_layer=partial(nn.LayerNorm, eps=1e-6))   
+                    
+         
+        config_encoder = BertConfig.from_json_file(config['bert_config'])
+        config_encoder.add_cross_attention = True
+        config_encoder.cross_attention_freq = 2
+        config_encoder.add_type_embeddings = False   
+        self.text_encoder = BertModel.from_pretrained(text_encoder, config=config_encoder, add_pooling_layer=False)  
+
+
         self.llm_proj = nn.Linear(
-            self.Qformer.config.hidden_size, self.llm_model.config.hidden_size
+            self.text_encoder.config.hidden_size, self.llm_model.config.hidden_size
         )
+
+        self.text_encoder.resize_token_embeddings(len(self.tokenizer))
+        self.text_encoder.cls = None
+
+        # self.llm_tokenizer = AutoTokenizer.from_pretrained(model_id, truncation_side="left", token="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")
+        # quantization_config = QuantoConfig(weights="int2")
+        # self.llm_model = AutoModelForCausalLM.from_pretrained(
+        #     model_id, device_map = 'auto', token="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", quantization_config=quantization_config
+        # )
+        
+        # quanto.quantize(self.llm_model, weights=quanto.qint2, activations=quanto.qint2)
 
         self.max_txt_len = 128
         self.max_output_txt_len = 256
@@ -108,16 +104,45 @@ class ALBEF(Blip2Base):
         return llm_tokens, input_part_targets_len
         
 
-    def forward(self, image, quesiton, answer=None, alpha=0, k=None, weights=None, train=True):
+    def forward(self, image, quesiton, answer=None, weights=None, train=True):
         
-        image_embeds = self.ln_vision(self.visual_encoder(image))
+        image_embeds = self.visual_encoder(image)
         image_atts = torch.ones(image_embeds.size()[:-1],dtype=torch.long).to(image.device)
 
         bs = image.size(0)
 
-        query_tokens = self.query_tokens.expand(image_embeds.shape[0], -1, -1)
+        if isinstance(quesiton, str):
+            quesiton = [quesiton]
 
-        
+
+        prompt = "Question: {} Answer:"
+        prompt = [prompt.format(question) for question in quesiton]
+        if isinstance(prompt, str):
+            prompt = [prompt] * bs
+
+        print("prompt: ", prompt)
+
+        text_Qformer = self.tokenizer(
+            prompt,
+            padding='longest',
+            truncation=True,
+            max_length=self.max_txt_len,
+            return_tensors="pt",
+            ).to(image.device)
+
+            
+        query_output = self.text_encoder(
+            text_Qformer.input_ids,
+            attention_mask=text_Qformer.attention_mask,
+            # inputs_embeds = query_tokens,
+            encoder_hidden_states=image_embeds,
+            encoder_attention_mask=image_atts,
+            return_dict=True,
+        ) 
+
+        inputs_llm = self.llm_proj(query_output.last_hidden_state[:,:,:])
+        atts_llm = torch.ones(inputs_llm.size()[:-1], dtype=torch.long).to(image.device)
+
         if train:               
             '''
             k: number of answers for each question
@@ -126,20 +151,10 @@ class ALBEF(Blip2Base):
 
             # do not apply loss to the padding
 
-            text_Qformer = self.tokenizer(
-            quesiton,
-            padding='longest',
-            truncation=True,
-            max_length=self.max_txt_len,
-            return_tensors="pt",
-            ).to(image.device)
-            query_atts = torch.ones(query_tokens.size()[:-1], dtype=torch.long).to(image.device)
-            Qformer_atts = torch.cat([query_atts, text_Qformer.attention_mask],dim=1)
-
             self.llm_tokenizer.padding_side = "right"
             self.llm_tokenizer.truncation_side = 'left'
             text_input_tokens = self.llm_tokenizer(
-                quesiton,
+                prompt,
                 return_tensors="pt",
                 padding="longest",
                 truncation=True,
@@ -162,7 +177,7 @@ class ALBEF(Blip2Base):
                 text_output_tokens.input_ids,
                 text_output_tokens.attention_mask,
             )
-            inputs_embeds = self.llm_model.get_input_embeddings()(llm_tokens['input_ids'])
+
             targets = llm_tokens['input_ids'].masked_fill(
                 llm_tokens['input_ids'] == self.llm_tokenizer.pad_token_id, -100
             )
@@ -171,126 +186,28 @@ class ALBEF(Blip2Base):
             for i, l in enumerate(input_part_targets_len):
                 targets[i][:l] = -100
 
-            # answer_targets = answer.input_ids.masked_fill(answer.input_ids == self.tokenizer.pad_token_id, -100)      
-
-            query_output = self.Qformer.bert(
-                text_Qformer.input_ids,
-                attention_mask=Qformer_atts,
-                query_embeds=query_tokens,
-                encoder_hidden_states=image_embeds,
-                encoder_attention_mask=image_atts,
-                return_dict=True,
-            ) 
-
-            question_states = []                
-            question_atts = []  
-            for b, n in enumerate(k):
-                question_states += [query_output.last_hidden_state[b]]*n
-                question_atts += [quesiton.attention_mask[b]]*n 
-            question_states = torch.stack(question_states,0)    
-            question_atts = torch.stack(question_atts,0)   
-
-            inputs_llm = self.llm_proj(query_output.last_hidden_state[:,:query_tokens.size(1),:])
-            inputs_embeds = torch.cat([inputs_llm, inputs_embeds], dim=1)
-
-            atts_llm = torch.ones(inputs_llm.size()[:-1], dtype=torch.long).to(image.device)
-
-            # do not apply loss to the query tokens
             empty_targets = (
                 torch.ones(atts_llm.size(), dtype=torch.long).to(image.device).fill_(-100)
             )
             targets = torch.cat([empty_targets, targets], dim=1)  
 
-            if self.distill:                    
-                with torch.no_grad():
-                    self._momentum_update()
-                    image_embeds_m = self.visual_encoder_m(image) 
-                    query_output_m = self.Qformer_m.bert(
-                        text_Qformer.input_ids,
-                        attention_mask=Qformer_atts,
-                        query_embeds=query_tokens,
-                        encoder_hidden_states=image_embeds_m,
-                        encoder_attention_mask=image_atts,
-                        return_dict=True,
-                    )  
+            inputs_embeds = self.llm_model.get_input_embeddings()(llm_tokens['input_ids'])
+            inputs_embeds = torch.cat([inputs_llm, inputs_embeds], dim=1)
 
-                    question_states_m = []                
-                    for b, n in enumerate(k):
-                        question_states_m += [query_output_m.last_hidden_state[b]]*n
-                    question_states_m = torch.stack(question_states_m,0)    
+            attention_mask = torch.cat([atts_llm, llm_tokens['attention_mask']], dim=1)
 
-                    inputs_llm_m = self.llm_proj(query_output_m.last_hidden_state[:,:query_tokens.size(1),:])
-
-                    inputs_embeds_m = torch.cat([inputs_llm_m, inputs_embeds], dim=1)
-                    attention_mask = torch.cat([atts_llm, llm_tokens['attention_mask']], dim=1)
-
-                    logits_m = self.llm_model(
-                        inputs_embeds=inputs_embeds_m,
-                        attention_mask=attention_mask,
-                        encoder_hidden_states = question_states_m,
-                        encoder_attention_mask = question_atts,  
-                        return_logits = True,
-                    )                    
-
+            with torch.autocast(device_type="cuda"):
                 answer_output = self.llm_model(
                         inputs_embeds=inputs_embeds,
-                        attention_mask=attention_mask,
-                        encoder_hidden_states = question_states,
-                        encoder_attention_mask = question_atts,     
+                        attention_mask=attention_mask,   
                         return_dict = True,  
-                        soft_labels = F.softmax(logits_m,dim=-1), 
-                        alpha = alpha,
-                        reduction = 'none',
-                        labels=targets,
-                    )    
-                                                 
-            else:
-                answer_output = self.llm_model(
-                        inputs_embeds=inputs_embeds,
-                        attention_mask=attention_mask,
-                        encoder_hidden_states = question_states,
-                        encoder_attention_mask = question_atts,     
-                        return_dict = True,  
-                        reduction = 'none',
                         labels=targets,
                     )    
 
-            loss = weights * answer_output.loss         
-            loss = loss.sum()/image.size(0)      
+                loss = weights * answer_output.loss         
+                loss = loss.sum()/image.size(0)      
 
         else: 
-
-            if isinstance(quesiton, str):
-                quesiton = [quesiton]
-
-
-            prompt = "Question: {} Answer:"
-            prompt = [prompt.format(question) for question in quesiton]
-            if isinstance(prompt, str):
-                prompt = [prompt] * bs
-
-            text_Qformer = self.tokenizer(
-                prompt,
-                padding='longest',
-                truncation=True,
-                max_length=self.max_txt_len,
-                return_tensors="pt",
-            ).to(image.device)
-            query_atts = torch.ones(query_tokens.size()[:-1], dtype=torch.long).to(image.device)
-            Qformer_atts = torch.cat([query_atts, text_Qformer.attention_mask], dim=1)
-
-            query_output = self.Qformer.bert(
-                    text_Qformer.input_ids,
-                    attention_mask=Qformer_atts,
-                    query_embeds=query_tokens,
-                    encoder_hidden_states=image_embeds,
-                    encoder_attention_mask=image_atts,
-                    return_dict=True,
-                )
-            
-            inputs_llm = self.llm_proj(query_output.last_hidden_state[:,:query_tokens.size(1),:])
-            atts_llm = torch.ones(inputs_llm.size()[:-1], dtype=torch.long).to(image.device)
-
 
             llm_tokens = self.llm_tokenizer(
             prompt,
@@ -334,8 +251,12 @@ class ALBEF(Blip2Base):
             
     @torch.no_grad()        
     def _momentum_update(self):
-        for model_pair in self.model_pairs:           
+        for model_pair in self.model_pairs:   
+            print(model_pair)
+        
             for param, param_m in zip(model_pair[0].parameters(), model_pair[1].parameters()):
+                print(param.size())
+                print(param_m.size())
                 param_m.data = param_m.data * self.momentum + param.data * (1. - self.momentum)
                 
                 

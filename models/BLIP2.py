@@ -22,7 +22,7 @@ from lavis.common.logger import MetricLogger
 from lavis.models.base_model import BaseModel
 from text_encoders.xbert_BLIP import BertConfig, BertLMHeadModel
 from lavis.models.eva_vit import create_eva_vit_g
-from lavis.models.clip_vit import create_clip_vit_L
+# from lavis.models.clip_vit import create_clip_vit_L
 from transformers import BertTokenizer
 
 
@@ -60,6 +60,28 @@ class Blip2Base(BaseModel):
         )
         query_tokens.data.normal_(mean=0.0, std=encoder_config.initializer_range)
         return Qformer, query_tokens
+    
+    {
+  "architectures": [
+    "BertForMaskedLM"
+  ],
+  "attention_probs_dropout_prob": 0.1,
+  "hidden_act": "gelu",
+  "hidden_dropout_prob": 0.1,
+  "hidden_size": 768,
+  "initializer_range": 0.02,
+  "intermediate_size": 3072,
+  "layer_norm_eps": 1e-12,
+  "max_position_embeddings": 512,
+  "model_type": "bert",
+  "num_attention_heads": 12,
+  "num_hidden_layers": 12,
+  "pad_token_id": 0,
+  "type_vocab_size": 2,
+  "vocab_size": 30522,
+  "fusion_layer": 6,
+  "encoder_width": 768
+}
 
     def init_vision_encoder(
         self, model_name, img_size, drop_path_rate, use_grad_checkpoint, precision
@@ -77,8 +99,8 @@ class Blip2Base(BaseModel):
 #             visual_encoder = create_eva2_vit_L(
 #                 img_size, drop_path_rate, use_grad_checkpoint, precision
 #             )
-        elif model_name == "clip_L":
-            visual_encoder = create_clip_vit_L(img_size, use_grad_checkpoint, precision)
+        # elif model_name == "clip_L":
+        #     visual_encoder = create_clip_vit_L(img_size, use_grad_checkpoint, precision)
         ln_vision = LayerNorm(visual_encoder.num_features)
         self.vit_name = model_name
         return visual_encoder, ln_vision
