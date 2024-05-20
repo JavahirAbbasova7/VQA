@@ -11,7 +11,10 @@ class vqa_dataset(Dataset):
         self.split = split        
         self.ann = []
         for f in ann_file:
-            self.ann += json.load(open(f,'r'))
+            if 'val_subset' in f:
+                self.ann += json.load(open(f,'r'))['questions']
+            else:
+                self.ann += json.load(open(f,'r'))
 
         self.transform = transform
         self.vqa_root = vqa_root
