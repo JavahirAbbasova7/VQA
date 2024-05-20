@@ -103,7 +103,7 @@ class pretrain_dataset(Dataset):
         else:
             caption = pre_caption(ann['caption'], self.max_words)
       
-        image = Image.open(ann['image']).convert('RGB')   
+        image = Image.open("data/" + ann['image']).convert('RGB')   
         image = self.transform(image)
                 
         return image, caption

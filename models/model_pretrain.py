@@ -117,7 +117,17 @@ class ALBEF(nn.Module):
             sim_targets.fill_diagonal_(1)          
 
             sim_i2t_targets = alpha * F.softmax(sim_i2t_m, dim=1) + (1 - alpha) * sim_targets
-            sim_t2i_targets = alpha * F.softmax(sim_t2i_m, dim=1) + (1 - alpha) * sim_targets        
+            sim_t2i_targets = alpha * F.softmax(sim_t2i_m, dim=1) + (1 - alpha) * sim_targets      
+
+
+        # non-contrastive loss
+        p_image = F.softmax(image_feat, dim=1)
+        p_text = F.softmax(text_feat, dim=1)
+        loss_cross_entropy = - (p_image * torch.log(p_text) + p_text * torch.log(p_image)).sum(dim=1).mean(dim=0)
+        l_EH = - (p_image * torch.log(p_image) + p_text * torch.log(p_text)).sum(dim=1).mean(dim=0)
+        
+        p_image_mean, p_text_mean = p_image.mean(dim=0), p_text.mean(dim=0)
+        l_HE = - (p_image_mean * torch.log(p_image_mean) + p_text_mean * torch.log(p_text_mean)).sum(dim=0)  
 
         sim_i2t = image_feat @ text_feat_all / self.temp 
         sim_t2i = text_feat @ image_feat_all / self.temp 
@@ -125,8 +135,9 @@ class ALBEF(nn.Module):
         loss_i2t = -torch.sum(F.log_softmax(sim_i2t, dim=1)*sim_i2t_targets,dim=1).mean()
         loss_t2i = -torch.sum(F.log_softmax(sim_t2i, dim=1)*sim_t2i_targets,dim=1).mean() 
 
-        loss_ita = (loss_i2t+loss_t2i)/2
+        # loss_ita = (loss_i2t+loss_t2i)/2
 
+        loss_ita = (loss_cross_entropy + l_EH - l_HE) / 2
         self._dequeue_and_enqueue(image_feat_m, text_feat_m)
 
         ###=================================###
@@ -234,8 +245,12 @@ class ALBEF(nn.Module):
     @torch.no_grad()
     def _dequeue_and_enqueue(self, image_feat, text_feat):
         # gather keys before updating queue
-        image_feats = concat_all_gather(image_feat)
-        text_feats = concat_all_gather(text_feat)
+
+        image_feats = image_feat
+        text_feats = text_feat
+
+        # image_feats = concat_all_gather(image_feat)
+        # text_feats = concat_all_gather(text_feat)
 
         batch_size = image_feats.shape[0]
 
