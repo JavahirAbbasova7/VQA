@@ -1,0 +1,33 @@
+train_file: ['../data/finetune_subset.json',
+             '../data/test_subset.json']
+             
+test_file: ['../data/test_subset.json']
+# answer_list: 'data/answer_list.json'
+
+vqa_root: '../data/'
+
+image_res: 224
+k_test: 128
+
+batch_size_train: 32 
+batch_size_test: 16 
+epochs: 2
+learning_rate: 0.00005
+
+save_freq: 100
+save_dir: './saved_models/'
+
+alpha: 0.4
+distill: True
+warm_up: True
+
+eos: '[SEP]'
+
+
+# visualbert
+num_hidden_layers: 2
+num_attention_heads: 4
+max_position_embeddings: 128
+
+# optimizer: {opt: adamW, lr: 2e-5, weight_decay: 0.02}
+# schedular: {sched: cosine, lr: 2e-5, epochs: 8, min_lr: 1e-6, decay_rate: 1, warmup_lr: 1e-5, warmup_epochs: 4, cooldown_epochs: 0}
