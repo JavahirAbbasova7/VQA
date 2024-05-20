@@ -137,7 +137,7 @@ class ALBEF(nn.Module):
 
         # loss_ita = (loss_i2t+loss_t2i)/2
 
-        loss_ita = (loss_cross_entropy + l_EH - l_HE) / 2
+        loss_ita = (loss_cross_entropy + 0.5 * l_EH - 1.5 * l_HE) / 2
         self._dequeue_and_enqueue(image_feat_m, text_feat_m)
 
         ###=================================###

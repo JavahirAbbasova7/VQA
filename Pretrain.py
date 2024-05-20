@@ -183,7 +183,7 @@ def main(args, config):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', default='./configs/Pretrain.yaml')
-    parser.add_argument('--checkpoint', default='') 
+    parser.add_argument('--checkpoint', default='checkpoint/ALBEF.pth') 
     parser.add_argument('--resume', default=False, type=bool)
     parser.add_argument('--output_dir', default='Pretrain/')
     parser.add_argument('--text_encoder', default='bert-base-uncased')

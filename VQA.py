@@ -222,7 +222,7 @@ def main(args, config):
             }
             torch.save(save_obj, os.path.join(args.output_dir, 'checkpoint_%02d.pth'%epoch))  
 
-        dist.barrier()   
+        # dist.barrier()   
   
     vqa_result = evaluation(model, test_loader, tokenizer, device, config)        
     result_file = save_result(vqa_result, args.result_dir, 'vqa_result_epoch%d'%epoch)
