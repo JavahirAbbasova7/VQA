@@ -56,11 +56,12 @@ class vqa_dataset(Dataset):
             
             if ann['dataset']=='vqa':
                 
-                if 'answer' not in list(ann.keys()):
-                    index = (index+1)%self.__len__()
-                    self.__getitem__(index)
+                # if 'answer' not in list(ann.keys()):
+                #     index = (index+1)%self.__len__()
+                #     self.__getitem__(index)
 
                 answer_weight = {}
+                # print(ann)
                 for answer in ann['answer']:
                     if answer in answer_weight.keys():
                         answer_weight[answer] += 1/len(ann['answer'])
