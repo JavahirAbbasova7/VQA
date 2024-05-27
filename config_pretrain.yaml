@@ -1,4 +1,4 @@
-train_file: ['data/pre_train_subset.json']
+train_file: ['data/pretrain_caption.json']
 vqa_root: 'data/' #train2014/
 answer_list: 'data/answer_list.json'
 # each train_file (json) contains a python list where each item is {'image': img_path, 'caption': text or list_of_text }               
@@ -14,7 +14,7 @@ queue_size: 65536
 momentum: 0.995
 alpha: 0.4
 
-eos: '[SEP]'
+eos : '[SEP]'
 
 optimizer: {opt: adamW, lr: 1e-4, weight_decay: 0.02}
-schedular: {sched: cosine, lr: 1e-4, epochs: 10, min_lr: 1e-5, decay_rate: 1, warmup_lr: 1e-5, warmup_epochs: 3, cooldown_epochs: 0}
+schedular: {sched: cosine, lr: 1e-4, epochs: 15, min_lr: 1e-5, decay_rate: 1, warmup_lr: 1e-5, warmup_epochs: 20, cooldown_epochs: 0}

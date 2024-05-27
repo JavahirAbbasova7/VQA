@@ -20,7 +20,7 @@ class pretrain_dataset(Dataset):
 
     def __getitem__(self, index):    
         ann = self.ann[index]
-        caption = pre_question(ann['question'],self.max_words)  
+        caption = pre_question(ann['caption'],self.max_words)  
         image = Image.open(os.path.join(self.file_root_dir, ann['image'])).convert('RGB')   
         image = self.transform(image)
                 

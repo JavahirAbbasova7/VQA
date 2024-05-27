@@ -14,6 +14,7 @@ class local_CNN(nn.Module):
         self.layer = resnet.layer1
         self.patching = nn.Unfold((4, 4), stride=(4,4))
         self.scale_down = nn.Linear(1024, 768)
+        self.cls_wts = nn.Linear(576, 1)
 
         del resnet  # Free up memory (when Garbage Collector runs)
 
@@ -23,10 +24,10 @@ class local_CNN(nn.Module):
         x = self.relu(x)
         x = self.maxpool(x)
         x = self.layer(x)
-        x = torch.permute(self.patching(x), (0, 2, 1))  # Batch Size x 36 (Num tokens) x Dim (16384)
+        x = torch.permute(self.patching(x), (0, 2, 1))  # Batch Size x 36 (Num tokens) x Dim (1024)
         x = self.scale_down(x)
 
-        cls_embedding = torch.mean(x, dim = 1).unsqueeze(1)
+        cls_embedding = torch.permute(self.cls_wts(torch.permute(x, (0, 2, 1))), (0, 2, 1))
         x = torch.cat((cls_embedding, x), dim= 1)
 
         return x

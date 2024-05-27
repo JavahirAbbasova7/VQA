@@ -1,14 +1,14 @@
 train_file: ['data/finetune_subset.json']
              
-test_file: ['data/test_subset.json']
+test_file: ['data/val_subset.json']
 answer_list: 'data/answer_list.json'
 
 vqa_root: './data/' #train2014/
 vg_root: './data/'  #image/
 
-image_res: 384 # The input image will be of the scale 384x384
+image_res: 384
 batch_size_train: 16 
-batch_size_test: 16 
+batch_size_test: 32
 k_test: 128
 
 alpha: 0.4
@@ -17,7 +17,7 @@ warm_up: True
 
 eos: '[SEP]'
 
-bert_config: './config_bert.json'
+bert_config: 'configs/config_bert.json'
 
 optimizer: {opt: adamW, lr: 2e-5, weight_decay: 0.02}
 schedular: {sched: cosine, lr: 2e-5, epochs: 8, min_lr: 1e-6, decay_rate: 1, warmup_lr: 1e-5, warmup_epochs: 4, cooldown_epochs: 0}
