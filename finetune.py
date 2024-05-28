@@ -221,12 +221,12 @@ def main(args, config):
                 'config': config,
                 'epoch': epoch,
             }
-            torch.save(save_obj, os.path.join(args.output_dir, 'checkpoint.pth'%epoch))  
+            torch.save(save_obj, os.path.join(args.output_dir, 'checkpoint.pth'))  
 
         dist.barrier()   
   
     vqa_result = evaluation(model, test_loader, tokenizer, device, config)        
-    result_file = save_result(vqa_result, args.result_dir, 'vqa_result_epoch%d'%epoch)
+    result_file = save_result(vqa_result, args.result_dir, 'vqa_result')
                      
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))

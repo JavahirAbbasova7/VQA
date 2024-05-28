@@ -168,7 +168,7 @@ def main(args, config):
                 'config': config,
                 'epoch': epoch,
             }
-            torch.save(save_obj, os.path.join(args.output_dir, 'checkpoint.pth'%epoch))  
+            torch.save(save_obj, os.path.join(args.output_dir, 'checkpoint.pth'))  
             
             with open(os.path.join(args.output_dir, "log.txt"),"a") as f:
                 f.write(json.dumps(log_stats) + "\n")

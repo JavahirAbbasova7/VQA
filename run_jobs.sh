@@ -9,5 +9,5 @@ python -m torch.distributed.launch --nproc_per_node 1 --rdzv-backend c10d \
 python -m torch.distributed.launch --nproc_per_node=1 --rdzv-backend c10d \
 --rdzv-endpoint localhost:29401 --use_env finetune.py \
 --config ./config_VQA.yaml \
---output_dir output/finetune/4M_caption_25May \
---checkpoint output/pretrain/4M_caption_25May/checkpoint.pth
+--output_dir output/finetune/4M_caption_27May \
+--checkpoint output/pretrain/4M_caption_27May/checkpoint.pth

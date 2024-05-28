@@ -19,15 +19,18 @@ dataSubType ='val2014'
 imgDir      ='data/val2014'
 resultType  ='fake'
 
-# An example result json file has been provided in './Results' folder.  
+
+outdir = 'output/eval/4M_caption_27May/'
 quesFile    ='data/val_subset.json'
 annFile     ='data/val_ann_subset.json'
-resFile = 'output/eval/result/vqa_result_epoch0_rank0.json'
-accuracyFile = 'output/eval/vqa_acc.json'
-evalQAFile = 'output/eval/vqa_evalQA.json'
-evalQuesTypeFile = 'output/eval/vqa_evalQuesType.json'
-evalAnsTypeFile = 'output/eval/vqa_evalAnsType.json'
-plotFile = 'output/eval/plot.png'
+
+
+resFile = outdir +'result/vqa_result.json'
+accuracyFile = outdir+'vqa_acc.json'
+evalQAFile = outdir+'vqa_evalQA.json'
+evalQuesTypeFile = outdir+'vqa_evalQuesType.json'
+evalAnsTypeFile = outdir+'vqa_evalAnsType.json'
+plotFile = outdir+'plot.png'
 
 # create vqa object and vqaRes object
 vqa = VQA(annFile, quesFile)
