@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export CUDA_VISIBLE_DEVICES=3,5,6,7
+export CUDA_VISIBLE_DEVICES=3,4,5,7
 
 python -m torch.distributed.launch --nproc_per_node=4 --use_env pretrain.py \
 --config ./config_pretrain.yaml \
