@@ -9,6 +9,11 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
+if torch.cuda.is_available():
+    device = torch.device('cuda')
+else:
+    device = torch.device('cpu')
+
 from dataset.vqa_dataset import vqa_dataset
 from dataset.randaugment import RandomAugment
 
@@ -49,10 +54,11 @@ def collate_fn(batch):
 train_loader = DataLoader(train_dataset, batch_size=config['batch_size_train'], collate_fn = collate_fn)
 
 infusion_model = InFusionModel(
+    device,
     num_hidden_layers=config['num_hidden_layers'],
     num_attention_heads = config['num_attention_heads'],
     max_position_embeddings = config['max_position_embeddings']
-)
+).to(device)
 
 total_params = sum(p.numel() for p in infusion_model.parameters())
 print(f"Number of parameters: {total_params}")
@@ -95,7 +101,7 @@ for epoch in range(epochs):
         reshaped_logits = outputs.view(-1, outputs.shape[-1])
         
         labels = infusion_model.processor(text=batch[2], max_length=outputs.shape[1], return_tensors='pt', padding='max_length')
-        labels_tensor = torch.tensor(labels.data['input_ids']).view(-1)
+        labels_tensor = torch.tensor(labels.data['input_ids']).view(-1).to(device)
 
         loss = loss_fct(reshaped_logits, labels_tensor)
         loss.backward()

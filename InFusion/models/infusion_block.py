@@ -41,7 +41,7 @@ def get_fusion_blocks(fusion_type, **kwargs):
 class InFusionBlockv1(nn.Module):
     def __init__(self, emb_size=768, output_emb_size=768, fusion_types=['add', 'concat_resize', 'product']):
         super().__init__()
-        self.fusion_blocks = [get_fusion_blocks(fusion_type, emb_size=emb_size) for fusion_type in fusion_types]
+        self.fusion_blocks = nn.ModuleList([get_fusion_blocks(fusion_type, emb_size=emb_size) for fusion_type in fusion_types])
         self.linear = nn.Linear(len(fusion_types)*emb_size, output_emb_size)
 
     def forward(self, image_embedding, text_embedding):

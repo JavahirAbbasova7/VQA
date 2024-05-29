@@ -9,12 +9,14 @@ from transformers.modeling_outputs import SequenceClassifierOutput
 class InFusionModel(nn.Module):
     def __init__(
             self,
+            device,
             num_hidden_layers = 4,
             num_attention_heads = 4,
             max_position_embeddings = 128
             ):
         super().__init__()
-        self.clip = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
+        self.device = device
+        self.clip = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(self.device)
         ## freezing clip
         for param in self.clip.parameters():
             param.requires_grad = False
@@ -26,7 +28,7 @@ class InFusionModel(nn.Module):
         visual_embedding_dim = hidden_size
         intermediate_size = 4*hidden_size
 
-        self.infusion_block = InFusionBlockv1(emb_size=hidden_size, output_emb_size=hidden_size)
+        self.infusion_block = InFusionBlockv1(emb_size=hidden_size, output_emb_size=hidden_size).to(self.device)
 
         config = VisualBertConfig(
             vocab_size=vocab_size,
@@ -48,9 +50,9 @@ class InFusionModel(nn.Module):
         for param in visualbert.parameters():
             param.requires_grad = False
         
-        self.visualbert_enc = visualbert.encoder
+        self.visualbert_enc = visualbert.encoder.to(self.device)
         
-        self.linear = nn.Linear(visualbert.config.hidden_size, vocab_size)
+        self.linear = nn.Linear(visualbert.config.hidden_size, vocab_size).to(self.device)
 
 
     def forward(self, images, texts, labels=None):
@@ -59,14 +61,14 @@ class InFusionModel(nn.Module):
             images: list of PIL images
             text: list of strings
         '''
-        inputs = self.processor(text=texts, images=images, return_tensors="pt", padding=True)
+        inputs = self.processor(text=texts, images=images, return_tensors="pt", padding=True).to(self.device)
         outputs = self.clip(**inputs)
 
-        text_emb = outputs.text_embeds
-        img_emb = outputs.image_embeds
+        text_emb = outputs.text_embeds.to(self.device)
+        img_emb = outputs.image_embeds.to(self.device)
 
-        text_seq = outputs.text_model_output.last_hidden_state
-        img_seq = self.clip.visual_projection(outputs.vision_model_output.last_hidden_state)
+        text_seq = outputs.text_model_output.last_hidden_state.to(self.device)
+        img_seq = self.clip.visual_projection(outputs.vision_model_output.last_hidden_state).to(self.device)
         # print(text_seq.shape, img_seq.shape)
 
         fused_emb = self.infusion_block(img_emb, text_emb)

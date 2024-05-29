@@ -1,9 +1,9 @@
-train_file: ['../../data/finetune_subset.json']
+train_file: ['/home/data/finetune_subset.json']
              
-test_file: ['../../data/test_subset.json']
+test_file: ['/home/data/test_subset.json']
 # answer_list: 'data/answer_list.json'
 
-vqa_root: '../../data/'
+vqa_root: '/home/data/'
 
 image_res: 224
 k_test: 128
@@ -16,8 +16,8 @@ learning_rate: 0.00005
 save_freq: 100
 save_dir: './saved_models/'
 
-load_path: './saved_models/20-May_23-21-15/epoch_1_iter_1200.pt'
-# load_path: False
+# load_path: './saved_models/20-May_23-21-15/epoch_1_iter_1200.pt'
+load_path: False
 
 alpha: 0.4
 distill: True
