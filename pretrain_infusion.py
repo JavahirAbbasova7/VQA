@@ -131,6 +131,7 @@ def main(args, config):
         checkpoint = torch.load(args.checkpoint, map_location='cpu') 
         state_dict = checkpoint['model']                       
         if args.resume:
+            print('Resuming...')
             optimizer.load_state_dict(checkpoint['optimizer'])
             lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
             start_epoch = checkpoint['epoch']+1         
@@ -139,7 +140,7 @@ def main(args, config):
             m_pos_embed_reshaped = interpolate_pos_embed(state_dict['visual_encoder_m.pos_embed'],model.visual_encoder_m)  
             state_dict['visual_encoder.pos_embed'] = pos_embed_reshaped       
             state_dict['visual_encoder_m.pos_embed'] = m_pos_embed_reshaped               
-        model.load_state_dict(state_dict)    
+        model.load_state_dict(state_dict, strict=False)    
         print('load checkpoint from %s'%args.checkpoint)
     
     model_without_ddp = model
@@ -191,7 +192,7 @@ if __name__ == '__main__':
     parser.add_argument('--seed', default=42, type=int)
     parser.add_argument('--world_size', default=1, type=int, help='number of distributed processes')    
     parser.add_argument('--dist_url', default='env://', help='url used to set up distributed training')
-    parser.add_argument('--distributed', default=True, type=bool)
+    parser.add_argument('--distributed', default=False, type=bool)
     args = parser.parse_args()
 
     config = yaml.load(open(args.config, 'r'), Loader=yaml.Loader)

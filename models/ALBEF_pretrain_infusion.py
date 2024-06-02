@@ -53,6 +53,10 @@ class ALBEF(nn.Module):
         self.text_encoder = BertForMaskedLM.from_pretrained(text_encoder, config=bert_config)   
 
         self.infusion_block = InFusionBlockv1()   
+        self.infusion_weight_text = nn.Parameter(torch.randn(1))
+        self.infusion_weight_image = nn.Parameter(torch.randn(1))
+        self.infusion_weight_text_all = nn.Parameter(torch.randn(1))
+        self.infusion_weight_image_all = nn.Parameter(torch.randn(1))
 
         text_width = self.text_encoder.config.hidden_size
         self.vision_proj = nn.Linear(vision_width, embed_dim)
@@ -137,15 +141,13 @@ class ALBEF(nn.Module):
         
         # infusion
         fused_emb = self.infusion_block(image_embeds[:,0,:], text_embeds[:,0,:])
-        fused_emb_text = fused_emb.expand_as(text_embeds)
-        fused_emb_image = fused_emb.expand_as(image_embeds)
+        fused_emb_text = fused_emb.unsqueeze(1).expand_as(text_embeds)
+        fused_emb_image = fused_emb.unsqueeze(1).expand_as(image_embeds)
 
-        infusion_weight_text = nn.Parameter(torch.randn(1))
-        infusion_weight_text_sig = F.sigmoid(infusion_weight_text)
+        infusion_weight_text_sig = F.sigmoid(self.infusion_weight_text)
         text_embeds = infusion_weight_text_sig*fused_emb_text + (1-infusion_weight_text_sig)*text_embeds
         
-        infusion_weight_image = nn.Parameter(torch.randn(1))
-        infusion_weight_image_sig = F.sigmoid(infusion_weight_image)
+        infusion_weight_image_sig = F.sigmoid(self.infusion_weight_image)
         image_embeds = infusion_weight_image_sig*fused_emb_image + (1-infusion_weight_image_sig)*image_embeds
         
         # forward the positve image-text pair
@@ -189,15 +191,13 @@ class ALBEF(nn.Module):
 
         # infusion
         fused_emb_all = self.infusion_block(image_embeds_all[:,0,:], text_embeds_all[:,0,:])
-        fused_emb_text_all = fused_emb_all.expand_as(text_embeds_all)
-        fused_emb_image_all = fused_emb_all.expand_as(image_embeds_all)
+        fused_emb_text_all = fused_emb_all.unsqueeze(1).expand_as(text_embeds_all)
+        fused_emb_image_all = fused_emb_all.unsqueeze(1).expand_as(image_embeds_all)
 
-        infusion_weight_text_all = nn.Parameter(torch.randn(1))
-        infusion_weight_text_sig_all = F.sigmoid(infusion_weight_text_all)
+        infusion_weight_text_sig_all = F.sigmoid(self.infusion_weight_text_all)
         text_embeds_all = infusion_weight_text_sig_all*fused_emb_text_all + (1-infusion_weight_text_sig_all)*text_embeds_all
         
-        infusion_weight_image_all = nn.Parameter(torch.randn(1))
-        infusion_weight_image_sig_all = F.sigmoid(infusion_weight_image_all)
+        infusion_weight_image_sig_all = F.sigmoid(self.infusion_weight_image_all)
         image_embeds_all = infusion_weight_image_sig_all*fused_emb_image_all + (1-infusion_weight_image_sig_all)*image_embeds_all
         
 
