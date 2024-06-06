@@ -1,16 +1,16 @@
-train_file: ['../data/finetune_subset.json',
-             '../data/test_subset.json']
+train_file: ['/hitvarth-vol/data/finetune_subset.json']
              
-test_file: ['../data/test_subset.json']
-# answer_list: 'data/answer_list.json'
+test_file: ['/hitvarth-vol/data/val_subset.json']
+answer_list: '/hitvarth-vol/data/val_ann_subset.json'
 
 # vqa_root: '/export/share/datasets/vision/VQA/Images/mscoco/' #train2014/
 # vg_root: '/export/share/datasets/vision/visual-genome/'  #image/
+vg_root: ''
 
-vqa_root: '../data/'
+vqa_root: '/hitvarth-vol/data/'
 
 image_res: 224
-batch_size_train: 32 
+batch_size_train: 16 
 batch_size_test: 16 
 k_test: 128
 
@@ -22,5 +22,5 @@ eos: '[SEP]'
 
 bert_config: './configs/config_bert.json'
 
-optimizer: {opt: adamW, lr: 2e-5, weight_decay: 0.02}
-schedular: {sched: cosine, lr: 2e-5, epochs: 8, min_lr: 1e-6, decay_rate: 1, warmup_lr: 1e-5, warmup_epochs: 4, cooldown_epochs: 0}
+optimizer: {opt: adamW, lr: 0.00002, weight_decay: 0.02}
+schedular: {sched: cosine, lr: 0.00002, epochs: 8, min_lr: 0.000001, decay_rate: 1, warmup_lr: 0.00001, warmup_epochs: 4, cooldown_epochs: 0}

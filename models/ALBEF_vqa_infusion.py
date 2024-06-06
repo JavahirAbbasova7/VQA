@@ -1,6 +1,6 @@
 from functools import partial
-from models.vit import VisionTransformer
-from models.xbert import BertConfig, BertModel, BertLMHeadModel
+from visual_encoders.vit import VisionTransformer
+from text_encoders.xbert import BertConfig, BertModel, BertLMHeadModel
 
 import torch
 from torch import nn
@@ -32,8 +32,8 @@ class ALBEF(nn.Module):
         self.infusion_block = InFusionBlockv1()   
         self.infusion_weight_text = nn.Parameter(torch.randn(1))
         self.infusion_weight_image = nn.Parameter(torch.randn(1))
-        self.infusion_weight_text_all = nn.Parameter(torch.randn(1))
-        self.infusion_weight_image_all = nn.Parameter(torch.randn(1))
+        # self.infusion_weight_text_all = nn.Parameter(torch.randn(1))
+        # self.infusion_weight_image_all = nn.Parameter(torch.randn(1))
             
         config_decoder = BertConfig.from_json_file(config['bert_config'])
         config_decoder.fusion_layer = 0
@@ -59,7 +59,7 @@ class ALBEF(nn.Module):
         image_embeds = self.visual_encoder(image) 
         image_atts = torch.ones(image_embeds.size()[:-1],dtype=torch.long).to(image.device)
 
-        text_output = self.text_encoder.bert(quesiton.input_ids, attention_mask = quesiton.attention_mask,                      
+        text_output = self.text_encoder(quesiton.input_ids, attention_mask = quesiton.attention_mask,                      
                                         return_dict = True, mode = 'text')            
         text_embeds = text_output.last_hidden_state
 
@@ -74,7 +74,7 @@ class ALBEF(nn.Module):
         infusion_weight_image_sig = F.sigmoid(self.infusion_weight_image)
         image_embeds = infusion_weight_image_sig*fused_emb_image + (1-infusion_weight_image_sig)*image_embeds
         
-        question_output = self.text_encoder.bert(encoder_embeds = text_embeds, 
+        question_output = self.text_encoder(encoder_embeds = text_embeds, 
                                         attention_mask = quesiton.attention_mask,
                                         encoder_hidden_states = image_embeds,
                                         encoder_attention_mask = image_atts,      
@@ -153,11 +153,11 @@ class ALBEF(nn.Module):
             
 
         else: 
-            # question_output = self.text_encoder(quesiton.input_ids, 
-            #                                     attention_mask = quesiton.attention_mask, 
-            #                                     encoder_hidden_states = image_embeds,
-            #                                     encoder_attention_mask = image_atts,                                    
-            #                                     return_dict = True)                    
+            question_output = self.text_encoder(quesiton.input_ids, 
+                                                 attention_mask = quesiton.attention_mask, 
+                                                 encoder_hidden_states = image_embeds,
+                                                 encoder_attention_mask = image_atts,                                    
+                                                 return_dict = True)                    
             topk_ids, topk_probs = self.rank_answer(question_output.last_hidden_state, quesiton.attention_mask, 
                                                     answer.input_ids, answer.attention_mask, k) 
             return topk_ids, topk_probs
@@ -194,7 +194,8 @@ class ALBEF(nn.Module):
         # topk_probs: top-k probability 
         # topk_ids: [num_question, k]        
         answer_first_token = answer_ids[:,1]
-        prob_first_token = F.softmax(logits,dim=1).index_select(dim=1, index=answer_first_token) 
+        prob_first_token = F.softmax(logits,dim=1).index_select(dim=1, index=answer_first_token)
+        breakpoint()
         topk_probs, topk_ids = prob_first_token.topk(k,dim=1) 
         
         # answer input: [num_question*k, answer_len]                 

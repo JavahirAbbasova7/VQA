@@ -15,7 +15,7 @@ class vqa_dataset(Dataset):
         self.ann = []
         for f in ann_file:
             self.ann += json.load(open(f,'r'))
-
+        
         self.transform = transform
         self.vqa_root = vqa_root
         self.vg_root = vg_root
