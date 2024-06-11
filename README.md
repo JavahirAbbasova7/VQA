@@ -1,1 +1,3 @@
-# Towards Accurate Visual Question Answering with Advanced Fusion Techniques
+# Towards Accurate Visual Question Answering with Improved Image-Text Alignment
+
+Recent advancements in multimodal AI have opened doors for Visual Language Models that can process the modalities of language and vision simultaneously to perform advanced vision-language tasks. Visual Question Answering (VQA) is a particularly challenging task that requires comprehending an image and answering a natural language question about its content. Achieving high performance in VQA relies heavily on effective image-text alignment. In this work, we propose novel approaches to enhance image-text alignment during the pre-training phase. While these approaches have the potential to improve performance across various downstream tasks, our primary focus is on enhancing VQA. 
