@@ -118,6 +118,7 @@ def main(args, config):
     #### Model #### 
     print("Creating model")
     model = ALBEF(config=config, text_encoder=args.text_encoder, tokenizer=tokenizer, init_deit=True)
+    print(sum([p.numel() for p in model.parameters() if p.requires_grad == True]))
     
     model = model.to(device)   
         
@@ -139,7 +140,7 @@ def main(args, config):
             m_pos_embed_reshaped = interpolate_pos_embed(state_dict['visual_encoder_m.pos_embed'],model.visual_encoder_m)  
             state_dict['visual_encoder.pos_embed'] = pos_embed_reshaped       
             state_dict['visual_encoder_m.pos_embed'] = m_pos_embed_reshaped               
-        model.load_state_dict(state_dict)    
+        model.load_state_dict(state_dict, strict=False)
         print('load checkpoint from %s'%args.checkpoint)
     
     model_without_ddp = model
@@ -167,7 +168,7 @@ def main(args, config):
                 'config': config,
                 'epoch': epoch,
             }
-            torch.save(save_obj, os.path.join(args.output_dir, 'checkpoint_%02d.pth'%epoch))  
+            torch.save(save_obj, os.path.join(args.output_dir, 'checkpoint.pth'))
             
             with open(os.path.join(args.output_dir, "log.txt"),"a") as f:
                 f.write(json.dumps(log_stats) + "\n")

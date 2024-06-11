@@ -220,7 +220,7 @@ def main(args, config):
                 'config': config,
                 'epoch': epoch,
             }
-            torch.save(save_obj, os.path.join(args.output_dir, 'checkpoint_%02d.pth'%epoch))  
+            torch.save(save_obj, os.path.join(args.output_dir, 'checkpoint.pth'))  
 
         # dist.barrier()   
   

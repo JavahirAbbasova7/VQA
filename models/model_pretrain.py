@@ -54,6 +54,25 @@ class ALBEF(nn.Module):
         self.vision_proj = nn.Linear(vision_width, embed_dim)
         self.text_proj = nn.Linear(text_width, embed_dim)         
 
+        # self.vision_proj_nclip = nn.Linear(vision_width, 32768)
+        # self.text_proj_nclip = nn.Linear(text_width, 32768)
+
+        self.vision_proj_nclip = nn.Sequential(
+            nn.Linear(vision_width, 4096),
+            nn.GELU(),
+            nn.BatchNorm1d(4096),
+            nn.Linear(4096, 32768),
+            nn.BatchNorm1d(32768, affine=False),
+        )
+
+        self.text_proj_nclip = nn.Sequential(
+            nn.Linear(text_width, 4096),
+            nn.GELU(),
+            nn.BatchNorm1d(4096),
+            nn.Linear(4096, 32768),
+            nn.BatchNorm1d(32768, affine=False),
+        )
+
         self.temp = nn.Parameter(torch.ones([]) * config['temp'])   
         self.queue_size = config['queue_size']
         self.momentum = config['momentum']  
@@ -121,8 +140,10 @@ class ALBEF(nn.Module):
 
 
         # non-contrastive loss
-        p_image = F.softmax(image_feat, dim=1)
-        p_text = F.softmax(text_feat, dim=1)
+        image_feat_nclip = F.normalize(self.vision_proj_nclip(image_embeds[:,0,:]),dim=-1)
+        text_feat_nclip = F.normalize(self.text_proj_nclip(text_embeds[:,0,:]),dim=-1)
+        p_image = F.softmax(image_feat_nclip, dim=1)
+        p_text = F.softmax(text_feat_nclip, dim=1)
         loss_cross_entropy = - (p_image * torch.log(p_text) + p_text * torch.log(p_image)).sum(dim=1).mean(dim=0)
         l_EH = - (p_image * torch.log(p_image) + p_text * torch.log(p_text)).sum(dim=1).mean(dim=0)
         
@@ -137,7 +158,8 @@ class ALBEF(nn.Module):
 
         # loss_ita = (loss_i2t+loss_t2i)/2
 
-        loss_ita = (loss_cross_entropy + 0.5 * l_EH - 1.5 * l_HE) / 2
+        loss_ita = 0.5 * ((loss_i2t+loss_t2i)/2) + 1 * ((loss_cross_entropy + 0.5 * l_EH - 1.5 * l_HE) / 2)
+        # loss_ita = 1 * ((loss_cross_entropy + 0.5 * l_EH - 1.5 * l_HE) / 2)
         self._dequeue_and_enqueue(image_feat_m, text_feat_m)
 
         ###=================================###

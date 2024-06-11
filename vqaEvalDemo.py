@@ -21,12 +21,12 @@ resultType  ='fake'
 # An example result json file has been provided in './Results' folder.  
 quesFile    ='data/val_subset.json'
 annFile     ='data/val_ann_subset.json'
-resFile = 'output/vqa/result/vqa_result_epoch0_rank0.json'
-accuracyFile = 'output/vqa/result/vqa_acc.json'
-evalQAFile = 'output/vqa/result/vqa_evalQA.json'
-evalQuesTypeFile = 'output/vqa/result/vqa_evalQuesType.json'
-evalAnsTypeFile = 'output/vqa/result/vqa_evalAnsType.json'
-plotFile = 'output/vqa/result/plot.png'
+resFile = 'output/vqa-nclip-big/result/vqa_result_epoch7_rank0.json'
+accuracyFile = 'output/vqa-nclip-big/result/vqa_acc.json'
+evalQAFile = 'output/vqa-nclip-big/result/vqa_evalQA.json'
+evalQuesTypeFile = 'output/vqa-nclip-big/result/vqa_evalQuesType.json'
+evalAnsTypeFile = 'output/vqa-nclip-big/result/vqa_evalAnsType.json'
+plotFile = 'output/vqa-nclip-big/result/plot.png'
 
 # create vqa object and vqaRes object
 vqa = VQA(annFile, quesFile)
